@@ -12,13 +12,13 @@ ET.register_namespace('', NS_URI)
 def style_file(in_path, out_path):
     tree = ET.parse(in_path)
     root = tree.getroot()
-    # LineStyle → красная линия, ширина 3
+    # красим линию в красный, ширина 3
     for ls in root.findall('.//kml:LineStyle', KML_NS):
         c = ls.find('kml:color', KML_NS)
         if c is not None: c.text = 'ff0000ff'
         w = ls.find('kml:width', KML_NS)
         if w is not None: w.text = '3'
-    # PolyStyle → только контур (outline=1, fill=0)
+    # только контур у полигонов
     for ps in root.findall('.//kml:PolyStyle', KML_NS):
         c = ps.find('kml:color', KML_NS)
         if c is not None: c.text = 'ff0000ff'
@@ -34,35 +34,48 @@ def style_file(in_path, out_path):
             outl.text = '1'
     tree.write(out_path, encoding='utf-8', xml_declaration=True)
 
-def batch_process(input_folder, output_folder):
-    os.makedirs(output_folder, exist_ok=True)
-    kmz = [f for f in os.listdir(input_folder) if f.lower().endswith('.kml')]
-    for fname in kmz:
-        src = os.path.join(input_folder,   fname)
-        dst = os.path.join(output_folder,  fname)
-        try:
-            style_file(src, dst)
-        except Exception as e:
-            print(f"Ошибка при обработке {fname}: {e}")
-    return len(kmz)
+def process_folder(in_folder, out_folder):
+    cnt = 0
+    for fname in os.listdir(in_folder):
+        if fname.lower().endswith('.kml'):
+            src = os.path.join(in_folder, fname)
+            dst = os.path.join(out_folder,  fname)
+            try:
+                style_file(src, dst)
+                cnt += 1
+            except Exception as e:
+                print(f"Ошибка в {fname}: {e}")
+    return cnt
 
 def main():
     root = tk.Tk()
-    root.withdraw()  # прячем главное окно
+    root.withdraw()
 
-    # 1) Выбор папки с исходными KML
-    in_dir = filedialog.askdirectory(title="Выберите папку с KML-файлами")
-    if not in_dir:
+    # 1) Собираем список входных папок
+    input_dirs = []
+    while True:
+        d = filedialog.askdirectory(title="Выберите папку с KML (Cancel — стоп)")
+        if not d:
+            break
+        input_dirs.append(d)
+    if not input_dirs:
         return
 
-    # 2) Выбор папки для результатов
+    # 2) Папка-назначение
     out_dir = filedialog.askdirectory(title="Куда сохранять обработанные файлы")
     if not out_dir:
         return
 
-    # 3) Обработка всех KML из in_dir
-    count = batch_process(in_dir, out_dir)
-    messagebox.showinfo("Готово", f"Обработано {count} файлов.")
+    # 3) Стартуем
+    total = 0
+    for folder in input_dirs:
+        total += process_folder(folder, out_dir)
+
+    messagebox.showinfo(
+        "Готово",
+        f"Обработано всего: {total} файлов\nИз папок:\n" +
+        "\n".join(input_dirs)
+    )
 
 if __name__ == '__main__':
     main()
