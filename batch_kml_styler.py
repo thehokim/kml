@@ -34,25 +34,26 @@ def style_file(in_path, out_path):
             outl.text = '1'
     tree.write(out_path, encoding='utf-8', xml_declaration=True)
 
-def batch_process(input_folder, output_folder):
+def batch_process(files, output_folder):
     os.makedirs(output_folder, exist_ok=True)
-    files = [f for f in os.listdir(input_folder) if f.lower().endswith('.kml')]
-    for fname in files:
-        src = os.path.join(input_folder, fname)
-        dst = os.path.join(output_folder, fname)
+    for in_path in files:
+        name = os.path.basename(in_path)
+        out_path = os.path.join(output_folder, name)
         try:
-            style_file(src, dst)
+            style_file(in_path, out_path)
         except Exception as e:
-            print(f"Error processing {fname}: {e}")
-    return len(files)
+            print(f"Error processing {name}: {e}")
 
 def main():
     root = tk.Tk()
-    root.withdraw()  # прячем главное окно
+    root.withdraw()
 
-    # 1) выбор входной папки
-    in_dir = filedialog.askdirectory(title="Выберите папку с KML-файлами")
-    if not in_dir: 
+    # 1) выбор нескольких KML-файлов
+    files = filedialog.askopenfilenames(
+        title="Выберите KML-файлы",
+        filetypes=[("KML файлы", "*.kml")],
+    )
+    if not files:
         return
 
     # 2) выбор выходной папки
@@ -61,8 +62,8 @@ def main():
         return
 
     # 3) обработка
-    count = batch_process(in_dir, out_dir)
-    messagebox.showinfo("Готово", f"Обработано файлов: {count}")
+    batch_process(files, out_dir)
+    messagebox.showinfo("Готово", f"Обработано файлов: {len(files)}")
 
 if __name__ == '__main__':
     main()
